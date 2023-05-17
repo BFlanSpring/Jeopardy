@@ -18,46 +18,108 @@
 //    ...
 //  ]
 
-function randomNumbers() { //Do not run this, this is run in randomCategories() function
-    let indexes = [];
-    for (let i=0; i < 6; i++) {
-        var randomNumber;
-        var isUnique = false;
+// function randomNumbers() {
+//   let IDs = [];
+//   for (let i = 0; i < 6; i++) {
+//     let randomNumber;
+//     let isUnique = false;
 
-        while (!isUnique) {
-        randomNumber = Math.floor(Math.random() * 101); // Generate random number between 0 and 100
+//     while (!isUnique) {
+//       randomNumber = Math.floor(Math.random() * 1001); // Generate random number between 0 and 100
 
-         if (!indexes.includes(randomNumber)) {
+//       if (!IDs.includes(randomNumber)) {
+//         isUnique = true;
+//       }
+//     }
+//     IDs.push(randomNumber);
+//   }
+//   return IDs;
+// }
+
+// const IDs = randomNumbers(); // Array of ID numbers
+
+// async function getCategoriesByID() {
+//   let selectedCategories = [];
+//   for (let i = 0; i < IDs.length; i++) {
+//     let index = IDs[i];
+//     const res = await axios.get(`https://jservice.io/api/clues?category=${index}`);
+//     selectedCategories.push(res.data);
+//   }
+  
+//   return selectedCategories;
+// }
+let categories = [];  //Create empty clues and cats to log data into after pulling api
+let clues = {};
+
+function randomNumbers() {
+  let IDs = [];
+  for (let i = 0; i < 6; i++) {
+    let randomNumber;
+    let isUnique = false;
+
+    while (!isUnique) {
+      randomNumber = Math.floor(Math.random() * 1001); // Generate random number between 0 and 100
+
+      if (!IDs.includes(randomNumber)) {
         isUnique = true;
       }
     }
-    indexes.push(randomNumber);
+    IDs.push(randomNumber);
   }
-  return indexes;
-}
-    
-async function randomCategoryIntergers(){ // takes the random 6 indexes from randomNumbers function and adds categories to selectedCategories 
-    let selectedCategories = [];
-    const res = await axios.get("https://jservice.io/api/categories?count=100",);
-    const categories = res.data;
-    indexes = randomNumbers();
-
-    for (let i = 0; i < indexes.length; i++) {
-        const index = indexes[i];
-        selectedCategories.push(categories[index]);
-      }
-    
-      return selectedCategories;
-
+  return IDs;
 }
 
+const IDs = randomNumbers(); // Array of ID numbers
 
-async function getCategoryClues(categoryId) {
-    const res = await axios.get(`https://jservice.io/api/clues?category=${categoryId}`);
+async function getCategoriesByID() {
+  for (let i = 0; i < IDs.length; i++) {
+    let index = IDs[i];
+    const res = await axios.get(`https://jservice.io/api/clues?category=${index}`);
+    const category = {
+      title: res.data[0].category.title,
+      clues: []
+    };
+
+    const existingCategory = categories.find(cat => cat.title === category.title);
+    if (existingCategory) {
+      continue; // Skip this category and move to the next iteration
+    }
+
+    res.data.slice(0, 5).forEach(clue => {
+      const clueId = `${i}-${clue.id}`;
+      category.clues.push(clueId);
+
+      clues[clueId] = {
+        question: clue.question,
+        answer: clue.answer,
+        value: clue.value
+      };
+    });
+
+    categories.push(category);
+  }
 }
 
-const categoryResults = randomCategories();
-console.log(categoryResults);
+getCategoriesByID();
+
+
+
+
+
+
+
+
+
+
+
+  
+   
+
+
+async function getCategoryClues(categoryId) {}
+
+// const categoryResults = randomCategories();
+// console.log(categoryResults);
 
 
 function getCategoryIds() {
