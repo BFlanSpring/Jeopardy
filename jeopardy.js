@@ -1,195 +1,134 @@
-// categories is the main data structure for the app; it looks like this:
-
-//  [
-//    { title: "Math",
-//      clues: [
-//        {question: "2+2", answer: 4, showing: null},
-//        {question: "1+1", answer: 2, showing: null}
-//        ...
-//      ],
-//    },
-//    { title: "Literature",
-//      clues: [
-//        {question: "Hamlet Author", answer: "Shakespeare", showing: null},
-//        {question: "Bell Jar Author", answer: "Plath", showing: null},
-//        ...
-//      ],
-//    },
-//    ...
-//  ]
-
-// function randomNumbers() {
-//   let IDs = [];
-//   for (let i = 0; i < 6; i++) {
-//     let randomNumber;
-//     let isUnique = false;
-
-//     while (!isUnique) {
-//       randomNumber = Math.floor(Math.random() * 1001); // Generate random number between 0 and 100
-
-//       if (!IDs.includes(randomNumber)) {
-//         isUnique = true;
-//       }
-//     }
-//     IDs.push(randomNumber);
-//   }
-//   return IDs;
-// }
-
-// const IDs = randomNumbers(); // Array of ID numbers
-
-// async function getCategoriesByID() {
-//   let selectedCategories = [];
-//   for (let i = 0; i < IDs.length; i++) {
-//     let index = IDs[i];
-//     const res = await axios.get(`https://jservice.io/api/clues?category=${index}`);
-//     selectedCategories.push(res.data);
-//   }
-  
-//   return selectedCategories;
-// }
-let categories = [];  //Create empty clues and cats to log data into after pulling api
+let categories = []; // Create empty clues and categories to log data into after pulling API
 let clues = {};
 
-function randomNumbers() {
-  let IDs = [];
-  for (let i = 0; i < 6; i++) {
-    let randomNumber;
-    let isUnique = false;
+document.addEventListener("DOMContentLoaded", function () {
+  function randomNumbers() {
+    let IDs = [];
+    for (let i = 0; i < 6; i++) {
+      let randomNumber;
+      let isUnique = false;
 
-    while (!isUnique) {
-      randomNumber = Math.floor(Math.random() * 1001); // Generate random number between 0 and 100
+      while (!isUnique) {
+        randomNumber = Math.floor(Math.random() * 200); // Generate random number between 0 and 1000
 
-      if (!IDs.includes(randomNumber)) {
-        isUnique = true;
+        if (!IDs.includes(randomNumber)) {
+          isUnique = true;
+        }
       }
+      IDs.push(randomNumber);
     }
-    IDs.push(randomNumber);
+    return IDs;
   }
-  return IDs;
-}
 
-const IDs = randomNumbers(); // Array of ID numbers
-
-async function getCategoriesByID() {
-  for (let i = 0; i < IDs.length; i++) {
-    let index = IDs[i];
-    const res = await axios.get(`https://jservice.io/api/clues?category=${index}`);
-    const category = {
-      title: res.data[0].category.title,
-      clues: []
-    };
-
-    const existingCategory = categories.find(cat => cat.title === category.title);
-    if (existingCategory) {
-      continue; // Skip this category and move to the next iteration
-    }
-
-    res.data.slice(0, 5).forEach(clue => {
-      const clueId = `${i}-${clue.id}`;
-      category.clues.push(clueId);
-
-      clues[clueId] = {
-        question: clue.question,
-        answer: clue.answer,
-        value: clue.value
+  async function getCategoriesByID() {
+    const IDs = randomNumbers(); // pulls categories from the api, and pushed them into categories array and clues object, so we canpull from
+    for (let i = 0; i < IDs.length; i++) {
+      let index = IDs[i];
+      const res = await axios.get(
+        `https://jservice.io/api/clues?category=${index}`
+      );
+      const category = {
+        title: res.data[0].category.title,
+        clues: [],
       };
+
+      const existingCategory = categories.find(
+        (cat) => cat.title === category.title
+      );
+      if (existingCategory) {
+        continue; // Skip this category and move to the next iteration
+      }
+
+      res.data.slice(0, 5).forEach((clue, index) => {
+        const clueId = `${i}-${index + 1}`;
+        category.clues.push(clueId);
+
+        clues[clueId] = {
+          question: clue.question,
+          answer: clue.answer,
+          value: (index + 1) * 100,
+        };
+      });
+
+      categories.push(category);
+      renderCategory(category);
+    }
+  }
+
+  function renderCategory(category) { //creates category and injects them into the page
+    const column = document.createElement("div");
+    column.classList.add("column");
+
+    const header = document.createElement("header");
+    header.textContent = category.title;
+    column.appendChild(header);
+
+    const ul = document.createElement("ul");
+
+    const missingCluesCount = 5 - category.clues.length; //Finds how many clues are missing, if any (in order ro populate emtyy cue spaces)
+
+    category.clues.forEach((clueId) => {
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.dataset.clueId = clueId;
+      button.textContent = clues[clueId].value;
+      button.classList.add("game-button");
+      li.appendChild(button);
+      ul.appendChild(li);
     });
 
-    categories.push(category);
+    for (let i = 0; i < missingCluesCount; i++) {//adds bonus Qs if column isnt populated with 5 clues
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.textContent = "BONUS QUESTION";
+      button.classList.add("game-button", "bonus-question");
+      li.appendChild(button);
+      ul.appendChild(li);
+    }
+
+    column.appendChild(ul);
+
+    const boardElement = document.getElementById("board");
+    boardElement.appendChild(column);
   }
-}
 
-getCategoriesByID();
+  const MAX_CLICKS = 2;
 
+  document.addEventListener("click", function (event) {
+    if (event.target.matches("button")) {
+      const clueId = event.target.dataset.clueId;
+      const button = event.target;
+      const clickCount = parseInt(button.dataset.clickCount) || 0;
 
+      if (clues[clueId]) {
+        const question = clues[clueId].question;
+        const answer = clues[clueId].answer;
 
+        if (clickCount === 0) {
+          button.textContent = question; // Change the button text to the question on the first click
+        } else if (clickCount === MAX_CLICKS - 1) {
+          button.textContent = answer; // Change the button text to the answer on the last click
+          button.disabled = true;
+          button.classList.add("correct-answer"); // Disable the button after displaying the answer
+        }
 
+        button.dataset.clickCount = clickCount + 1; // keeps track of click count
+      }
+    }
+  });
 
+  getCategoriesByID();
 
+  const newGameButton = document.getElementById("start");
+  newGameButton.addEventListener("click", function () {
+    resetBoard();
+    getCategoriesByID();
+  });
 
-
-
-
-
-  
-   
-
-
-async function getCategoryClues(categoryId) {}
-
-// const categoryResults = randomCategories();
-// console.log(categoryResults);
-
-
-function getCategoryIds() {
-
-}
-
-/** Return object with data about a category:
- *
- *  Returns { title: "Math", clues: clue-array }
- *
- * Where clue-array is:
- *   [
- *      {question: "Hamlet Author", answer: "Shakespeare", showing: null},
- *      {question: "Bell Jar Author", answer: "Plath", showing: null},
- *      ...
- *   ]
- */
-
-function getCategory(catId) {
-}
-
-/** Fill the HTML table#jeopardy with the categories & cells for questions.
- *
- * - The <thead> should be filled w/a <tr>, and a <td> for each category
- * - The <tbody> should be filled w/NUM_QUESTIONS_PER_CAT <tr>s,
- *   each with a question for each category in a <td>
- *   (initally, just show a "?" where the question/answer would go.)
- */
-
-async function fillTable() {
-}
-
-/** Handle clicking on a clue: show the question or answer.
- *
- * Uses .showing property on clue to determine what to show:
- * - if currently null, show question & set .showing to "question"
- * - if currently "question", show answer & set .showing to "answer"
- * - if currently "answer", ignore click
- * */
-
-function handleClick(evt) {
-}
-
-/** Wipe the current Jeopardy board, show the loading spinner,
- * and update the button used to fetch data.
- */
-
-function showLoadingView() {
-
-}
-
-/** Remove the loading spinner and update the button used to fetch data. */
-
-function hideLoadingView() {
-}
-
-/** Start game:
- *
- * - get random category Ids
- * - get data for each category
- * - create HTML table
- * */
-
-async function setupAndStart() {
-}
-
-/** On click of start / restart button, set up game. */
-
-// TODO
-
-/** On page load, add event handler for clicking clues */
-
-// TODO
+  function resetBoard() {
+    categories = [];
+    clues = {};
+    const boardElement = document.getElementById("board");
+    boardElement.innerHTML = "";
+  }
+});
